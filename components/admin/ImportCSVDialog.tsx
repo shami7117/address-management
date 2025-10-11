@@ -20,7 +20,6 @@ import { Label } from '@/components/ui/label';
 interface Address {
   id: string;
   address: string;
-  comment: string;
   checked: boolean;
   lastChanged: Date;
 }
@@ -51,11 +50,10 @@ export default function ImportCSVDialog({ onImport }: ImportCSVDialogProps) {
       const dataLines = lines[0].toLowerCase().includes('address') ? lines.slice(1) : lines;
       
       const importedAddresses: Address[] = dataLines.map((line, index) => {
-        const [address, comment = ''] = line.split(',').map(s => s.trim());
+        const address = line.trim();
         return {
           id: `import-${Date.now()}-${index}`,
           address,
-          comment,
           checked: false,
           lastChanged: new Date(),
         };
@@ -80,7 +78,7 @@ export default function ImportCSVDialog({ onImport }: ImportCSVDialogProps) {
         <DialogHeader>
           <DialogTitle>Import Addresses from CSV</DialogTitle>
           <DialogDescription>
-            Upload a CSV file with address data. Expected format: address, comment
+            Upload a CSV file with address data. One address per line.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">

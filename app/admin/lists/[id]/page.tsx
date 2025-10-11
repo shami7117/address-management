@@ -1,4 +1,6 @@
-// app/admin/lists/[id]/page.tsx
+// =============================================
+// FILE: app/admin/lists/[id]/page.tsx
+// =============================================
 'use client';
 
 import React, { useState } from 'react';
@@ -10,12 +12,12 @@ import AddressTable from '@/components/admin/AddressTable';
 import AddAddressDialog from '@/components/admin/AddAddressDialog';
 import ImportCSVDialog from '@/components/admin/ImportCSVDialog';
 import ExportCSVButton from '@/components/admin/ExportCSVButton';
+import WallboardControls from '@/components/admin/WallboardControls';
 
 // Types
 export interface Address {
   id: string;
   address: string;
-  comment: string;
   checked: boolean;
   lastChanged: Date;
 }
@@ -31,28 +33,24 @@ const mockAddresses: Address[] = [
   {
     id: '1',
     address: '123 Main Street, Berlin',
-    comment: 'Primary location',
     checked: true,
     lastChanged: new Date('2024-03-15'),
   },
   {
     id: '2',
     address: '456 Oak Avenue, Hamburg',
-    comment: 'Secondary office',
     checked: false,
     lastChanged: new Date('2024-03-10'),
   },
   {
     id: '3',
     address: '789 Pine Road, Munich',
-    comment: 'Branch location',
     checked: true,
     lastChanged: new Date('2024-02-28'),
   },
   {
     id: '4',
     address: '321 Elm Street, Frankfurt',
-    comment: '',
     checked: false,
     lastChanged: new Date('2024-03-01'),
   },
@@ -61,12 +59,12 @@ const mockAddresses: Address[] = [
 export default function ListDetailPage({ params }: { params: { id: string } }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>(mockAddresses);
+  const [wallboardUrl, setWallboardUrl] = useState<string | null>(null);
 
-  const handleAddAddress = (address: string, comment: string) => {
+  const handleAddAddress = (address: string) => {
     const newAddress: Address = {
       id: String(Date.now()),
       address,
-      comment,
       checked: false,
       lastChanged: new Date(),
     };
@@ -100,6 +98,21 @@ export default function ListDetailPage({ params }: { params: { id: string } }) {
     // TODO: Connect to Supabase to persist order
   };
 
+  const handleGenerateWallboard = () => {
+    // Generate random slug
+    const randomSlug = Math.random().toString(36).substring(2, 10);
+    const newWallboardUrl = `/wallboard/${randomSlug}`;
+    setWallboardUrl(newWallboardUrl);
+    // TODO: Connect to Supabase to persist wallboard_url
+    // await supabase.from('address_lists').update({ wallboard_url: randomSlug }).eq('id', params.id);
+  };
+
+  const handleDeleteWallboard = () => {
+    setWallboardUrl(null);
+    // TODO: Connect to Supabase to clear wallboard_url
+    // await supabase.from('address_lists').update({ wallboard_url: null }).eq('id', params.id);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
@@ -125,6 +138,15 @@ export default function ListDetailPage({ params }: { params: { id: string } }) {
                   Area Code: {mockListData.areaCode}
                 </p>
               </div>
+            </div>
+
+            {/* Wallboard Controls */}
+            <div className="mb-6">
+              <WallboardControls
+                wallboardUrl={wallboardUrl}
+                onGenerate={handleGenerateWallboard}
+                onDelete={handleDeleteWallboard}
+              />
             </div>
 
             {/* Toolbar */}
@@ -155,3 +177,5 @@ export default function ListDetailPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
+
+

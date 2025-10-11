@@ -18,7 +18,6 @@ import {
 interface Address {
   id: string;
   address: string;
-  comment: string;
   checked: boolean;
   lastChanged: Date;
 }
@@ -123,7 +122,6 @@ export default function AddressTable({
             <TableRow>
               <TableHead className="w-12">&nbsp;</TableHead>
               <TableHead>Address</TableHead>
-              <TableHead>Comment</TableHead>
               <TableHead className="w-24">Checked</TableHead>
               <TableHead>Last Changed</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -143,16 +141,6 @@ export default function AddressTable({
                   <GripVertical className="h-5 w-5 text-gray-400" />
                 </TableCell>
                 <TableCell className="font-medium">{address.address}</TableCell>
-                <TableCell>
-                  <Input
-                    value={address.comment}
-                    onChange={(e) =>
-                      onUpdateAddress(address.id, 'comment', e.target.value)
-                    }
-                    placeholder="Add comment..."
-                    className="max-w-xs"
-                  />
-                </TableCell>
                 <TableCell>
                   <Checkbox
                     checked={address.checked}
@@ -190,17 +178,6 @@ export default function AddressTable({
               <GripVertical className="h-5 w-5 text-gray-400" />
             </CardHeader>
             <CardContent className="space-y-3">
-              <div>
-                <label className="text-sm font-medium text-gray-600">Comment</label>
-                <Input
-                  value={address.comment}
-                  onChange={(e) =>
-                    onUpdateAddress(address.id, 'comment', e.target.value)
-                  }
-                  placeholder="Add comment..."
-                  className="mt-1"
-                />
-              </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Checkbox

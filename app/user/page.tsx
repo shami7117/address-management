@@ -1,4 +1,3 @@
-// app/user/page.tsx
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -15,6 +14,8 @@ export interface UserList {
   areaCode: string;
   createdAt: Date;
   hasCheckedItems: boolean;
+  checkedCount: number;
+  totalCount: number;
 }
 
 // Mock Data
@@ -25,6 +26,8 @@ const mockUserLists: UserList[] = [
     areaCode: '030',
     createdAt: new Date('2024-03-15'),
     hasCheckedItems: true,
+    checkedCount: 5,
+    totalCount: 10,
   },
   {
     id: '2',
@@ -32,6 +35,8 @@ const mockUserLists: UserList[] = [
     areaCode: '040',
     createdAt: new Date('2024-02-20'),
     hasCheckedItems: false,
+    checkedCount: 0,
+    totalCount: 25,
   },
   {
     id: '3',
@@ -39,6 +44,8 @@ const mockUserLists: UserList[] = [
     areaCode: '089',
     createdAt: new Date('2024-01-10'),
     hasCheckedItems: true,
+    checkedCount: 18,
+    totalCount: 20,
   },
   {
     id: '4',
@@ -46,6 +53,8 @@ const mockUserLists: UserList[] = [
     areaCode: '069',
     createdAt: new Date('2024-03-01'),
     hasCheckedItems: false,
+    checkedCount: 0,
+    totalCount: 15,
   },
   {
     id: '5',
@@ -53,6 +62,8 @@ const mockUserLists: UserList[] = [
     areaCode: '030',
     createdAt: new Date('2024-02-15'),
     hasCheckedItems: true,
+    checkedCount: 12,
+    totalCount: 30,
   },
   {
     id: '6',
@@ -60,6 +71,8 @@ const mockUserLists: UserList[] = [
     areaCode: '089',
     createdAt: new Date('2024-01-25'),
     hasCheckedItems: false,
+    checkedCount: 3,
+    totalCount: 50,
   },
 ];
 

@@ -18,19 +18,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 interface AddAddressDialogProps {
-  onAddAddress: (address: string, comment: string) => void;
+  onAddAddress: (address: string) => void;
 }
 
 export default function AddAddressDialog({ onAddAddress }: AddAddressDialogProps) {
   const [open, setOpen] = useState(false);
   const [address, setAddress] = useState('');
-  const [comment, setComment] = useState('');
 
   const handleSubmit = () => {
     if (address.trim()) {
-      onAddAddress(address, comment);
+      onAddAddress(address);
       setAddress('');
-      setComment('');
       setOpen(false);
     }
   };
@@ -58,15 +56,6 @@ export default function AddAddressDialog({ onAddAddress }: AddAddressDialogProps
               placeholder="Enter full address"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="comment">Comment (Optional)</Label>
-            <Input
-              id="comment"
-              placeholder="Add a comment"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
             />
           </div>
         </div>

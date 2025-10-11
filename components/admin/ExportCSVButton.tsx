@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 interface Address {
   id: string;
   address: string;
-  comment: string;
   checked: boolean;
   lastChanged: Date;
 }
@@ -29,9 +28,9 @@ export default function ExportCSVButton({ addresses }: ExportCSVButtonProps) {
   const handleExport = () => {
     // Create CSV content with UTF-8 BOM for proper encoding
     const BOM = '\uFEFF';
-    const headers = 'Address,Comment,Checked,Last Changed\n';
+    const headers = 'Address,Checked,Last Changed\n';
     const rows = addresses.map(addr => 
-      `"${addr.address}","${addr.comment}",${addr.checked ? 'Yes' : 'No'},${formatDate(addr.lastChanged)}`
+      `"${addr.address}",${addr.checked ? 'Yes' : 'No'},${formatDate(addr.lastChanged)}`
     ).join('\n');
     
     const csvContent = BOM + headers + rows;

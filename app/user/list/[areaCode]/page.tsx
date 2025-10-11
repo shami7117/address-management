@@ -2,8 +2,10 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Card, CardContent } from '@/components/ui/card';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import AddressSearchBar from '@/components/user/AddressSearchBar';
@@ -86,6 +88,15 @@ export default function UserListDetailPage({ params }: { params: { areaCode: str
   const [eventLogs, setEventLogs] = useState<EventLog[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'checked' | 'unchecked'>('all');
+
+  // Calculate progress statistics
+  const progressStats = useMemo(() => {
+    const total = addresses.length;
+    const checked = addresses.filter(addr => addr.checked).length;
+    const percentage = total > 0 ? Math.round((checked / total) * 100) : 0;
+    
+    return { total, checked, percentage };
+  }, [addresses]);
 
   // Add event to log
   const logEvent = (
@@ -195,6 +206,36 @@ export default function UserListDetailPage({ params }: { params: { areaCode: str
                 </p>
               </div>
             </div>
+
+            {/* Progress Summary Card */}
+            <Card className="mb-6">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between gap-6">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-base font-semibold">List Progress</h3>
+                        <span className="text-sm font-medium text-primary">
+                          {progressStats.percentage}%
+                        </span>
+                      </div>
+                      <Progress value={progressStats.percentage} className="h-2" />
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 whitespace-nowrap">
+                    <span className="font-medium text-gray-900">
+                      {progressStats.checked}
+                    </span>
+                    {' / '}
+                    <span className="font-medium text-gray-900">
+                      {progressStats.total}
+                    </span>
+                    {' '}checked
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Toolbar */}
             <div className="mb-6 space-y-4">
