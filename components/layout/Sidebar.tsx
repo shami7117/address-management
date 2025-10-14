@@ -6,7 +6,14 @@
 
 import React from "react"
 import Link from "next/link"
-import { LayoutDashboard, Users, ListChecks, History } from "lucide-react"
+import { 
+  LayoutDashboard, 
+  Users, 
+  ListChecks, 
+  History, 
+  Contact, 
+  FileText 
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface SidebarProps {
@@ -19,6 +26,9 @@ const menuSections = [
     title: "Admin",
     items: [
       { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
+      { icon: Contact, label: "Master Contacts", href: "/admin/contacts" },
+      { icon: FileText, label: "Contact Reasons", href: "/admin/reasons" },
+      { icon: ListChecks, label: "Contact Pages", href: "/admin/contact-pages" },
     ],
   },
   {
