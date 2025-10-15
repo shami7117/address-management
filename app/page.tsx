@@ -5,172 +5,153 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, Zap, CheckCircle, Lock, Clock, Sparkles } from 'lucide-react';
 import ParticlesBackground from './ParticlesBackground';
+import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 
+// Code Input Form
+const CodeForm = () => {
+  const [code, setCode] = useState(['', '', '', '', '', '']);
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<any>(null);
+  const inputRefs:any = useRef([]);
 
-// Floating Background Shapes
-const FloatingShapes = () => {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <motion.div
-        className="absolute w-64 h-64 bg-purple-400/20 rounded-full "
-        animate={{
-          x: [0, 100, 0],
-          y: [0, -100, 0],
-          scale: [1, 1.2, 1],
-        }}
-        transition={{
-          duration: 20,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-        style={{ top: '10%', left: '10%' }}
-      />
-      <motion.div
-        className="absolute w-96 h-96 bg-blue-400/20 rounded-full blur-xl md:blur-none"
-        animate={{
-          x: [0, -150, 0],
-          y: [0, 100, 0],
-          scale: [1, 1.3, 1],
-        }}
-        transition={{
-          duration: 25,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-        style={{ top: '40%', right: '10%' }}
-      />
-      <motion.div
-        className="absolute w-72 h-72 bg-pink-400/20 rounded-full blur-xl md:blur-none"
-        animate={{
-          x: [0, 80, 0],
-          y: [0, 150, 0],
-          scale: [1, 1.1, 1],
-        }}
-        transition={{
-          duration: 22,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-        style={{ bottom: '20%', left: '20%' }}
-      />
-    </div>
-  );
-};
-
-// Code Input Boxes Component
-const CodeInputBoxes = ({ onComplete, error }: { onComplete: (code: string) => void; error: boolean }) => {
-  const [values, setValues] = useState(['', '', '', '', '', '']);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  const handleChange = (index: number, value: string) => {
-    if (!/^[A-Z0-9]*$/.test(value.toUpperCase())) return;
-
-    const newValues = [...values];
-    newValues[index] = value.toUpperCase().slice(-1);
-    setValues(newValues);
-
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
+  // Autofocus first input on mount
+  useEffect(() => {
+    if (inputRefs.current[0]) {
+      inputRefs.current[0].focus();
     }
+  }, []);
 
-    if (newValues.every(v => v) && newValues.join('').length === 6) {
-      onComplete(newValues.join(''));
+  const handleChange = (index:any, value:any) => {
+    if (value.length <= 1 && /^[a-zA-Z0-9]*$/.test(value)) {
+      const newCode = [...code];
+      newCode[index] = value.toUpperCase();
+      setCode(newCode);
+
+      // Auto-advance to next input
+      if (value && index < 5) {
+        inputRefs.current[index + 1]?.focus();
+      }
+
+      // Auto-validate when all 6 characters are entered
+      if (newCode.every(char => char !== '') && newCode.join('').length === 6) {
+        validateCode(newCode.join(''));
+      }
     }
   };
 
-  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !values[index] && index > 0) {
+  const handleKeyDown = (index:any, e:any) => {
+    // Handle backspace to move to previous input
+    if (e.key === 'Backspace' && !code[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
+    // Handle arrow keys for navigation
+    else if (e.key === 'ArrowLeft' && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+    else if (e.key === 'ArrowRight' && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
   };
 
-  const handlePaste = (e: React.ClipboardEvent) => {
+  const handlePaste = (e:any) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').toUpperCase().slice(0, 6);
-    const newValues = pastedData.split('').concat(Array(6).fill('')).slice(0, 6);
-    setValues(newValues);
-    if (newValues.every(v => v)) {
-      onComplete(newValues.join(''));
+    const pastedData = e.clipboardData.getData('text').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (pastedData.length === 6) {
+      const newCode = pastedData.split('');
+      setCode(newCode);
+      validateCode(pastedData);
     }
   };
 
-  useEffect(() => {
-    if (error) {
-      setValues(['', '', '', '', '', '']);
-      inputRefs.current[0]?.focus();
+  const validateCode = async (codeString:any) => {
+    setIsValidating(true);
+    setValidationResult(null);
+
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Mock validation logic
+    const isValid:any = codeString === 'ABC123' || codeString === 'XYZ789';
+    
+    setValidationResult(isValid ? 'success' : 'error');
+    setIsValidating(false);
+
+    if (isValid) {
+      setTimeout(() => {
+        alert('Code validated! Redirecting...');
+      }, 1000);
     }
-  }, [error]);
-
-  return (
-    <div className="flex gap-2 justify-center">
-      {values.map((value, index) => (
-        <motion.input
-          key={index}
-          // ref={el => inputRefs.current[index] = el}
-          type="text"
-          maxLength={1}
-          value={value}
-          onChange={e => handleChange(index, e.target.value)}
-          onKeyDown={e => handleKeyDown(index, e)}
-          onPaste={handlePaste}
-          className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all outline-none bg-white"
-          animate={error ? {
-            x: [0, -10, 10, -10, 10, 0],
-          } : {}}
-          transition={{ duration: 0.4 }}
-          whileFocus={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        />
-      ))}
-    </div>
-  );
-};
-
-// Code Form Component
-const CodeForm = () => {
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = async (code: string) => {
-    setIsSubmitting(true);
-    setError('');
-
-    // Simulate validation
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    if (code === 'ABC123') {
-      // Success - redirect or show success
-      alert('Code verified successfully!');
-    } else {
-      setError('Invalid code. Please try again.');
-    }
-    setIsSubmitting(false);
   };
 
   return (
     <div className="space-y-6">
-      <CodeInputBoxes onComplete={handleSubmit} error={!!error} />
-      
-      {error && (
+      <div className="flex justify-center gap-2" onPaste={handlePaste}>
+        {code.map((digit, index) => (
+          <motion.input
+            key={index}
+ref={(el) => { inputRefs.current[index] = el; }}
+            type="text"
+            // maxLength="1"
+            value={digit}
+            onChange={(e) => handleChange(index, e.target.value)}
+            onKeyDown={(e) => handleKeyDown(index, e)}
+            className={`w-12 h-14 text-center text-2xl font-bold border-2 rounded-lg focus:outline-none focus:ring-2 transition-all ${
+              validationResult === 'success'
+                ? 'border-green-500 bg-green-50'
+                : validationResult === 'error'
+                ? 'border-red-500 bg-red-50 shake'
+                : 'border-gray-300 focus:border-purple-500 focus:ring-purple-200'
+            }`}
+            disabled={isValidating}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: index * 0.1 }}
+          />
+        ))}
+      </div>
+
+      {isValidating && (
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
+          className="flex items-center justify-center gap-2 text-purple-600"
         >
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span>Validating code...</span>
+        </motion.div>
+      )}
+
+      {validationResult === 'success' && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <Alert className="border-green-500 bg-green-50">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              Code validated successfully! Redirecting...
+            </AlertDescription>
           </Alert>
         </motion.div>
       )}
 
-      <motion.button
-        className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold text-lg shadow-lg disabled:opacity-50"
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? 'Verifying...' : 'Submit Code'}
-      </motion.button>
+      {validationResult === 'error' && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <Alert className="border-red-500 bg-red-50">
+            <XCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">
+              Invalid code. Please check and try again.
+            </AlertDescription>
+          </Alert>
+        </motion.div>
+      )}
+
+      <p className="text-sm text-gray-500 text-center">
+        Enter your 6-character registration code
+      </p>
     </div>
   );
 };
@@ -179,7 +160,6 @@ const CodeForm = () => {
 const HeroSection = () => {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* <FloatingShapes /> */}
       <div className="relative z-10 max-w-2xl mx-auto px-4 py-20">
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -188,7 +168,7 @@ const HeroSection = () => {
           className="text-center mb-12"
         >
           <motion.h1
-            className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-4"
+            className="text-5xl md:text-6xl font-bold text-black mb-4"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.2, type: "spring", bounce: 0.4 }}
@@ -214,39 +194,16 @@ const HeroSection = () => {
           <Card className="shadow-2xl border-0 backdrop-blur-sm bg-white/90">
             <CardHeader>
               <CardTitle className="text-2xl text-center">Registration Code</CardTitle>
-              <CardDescription className="text-center">
-                Enter the code you received via email
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <CodeForm />
             </CardContent>
           </Card>
         </motion.div>
-
-        <motion.div
-          className="mt-12 text-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1, duration: 0.6 }}
-        >
-          <p className="text-sm text-gray-500">
-            Didn't receive a code? <a href="#" className="text-purple-600 hover:underline">Resend code</a>
-          </p>
-        </motion.div>
       </div>
-
-      <motion.div
-        className="absolute bottom-10 left-1/2 transform -translate-x-1/2"
-        animate={{ y: [0, 10, 0] }}
-        transition={{ duration: 2, repeat: Infinity }}
-      >
-        <div className="text-gray-400">↓ Scroll to learn more</div>
-      </motion.div>
     </section>
   );
 };
-
 
 // Scroll Reveal Wrapper
 const ScrollReveal = ({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) => {
@@ -438,16 +395,16 @@ const CTASection = () => {
 // Main Page Component
 export default function RegistrationPage() {
   return (
-   <div className="min-h-screen ">
+   <div className="min-h-screen relative">
       {/* Three.js Particle Background - renders behind all content */}
       <ParticlesBackground />
       
       {/* All your existing sections with proper z-index layering */}
       <div className="relative z-10">
         <HeroSection />
-        <HowItWorksSection />
+        {/* <HowItWorksSection />
         <FeatureSection />
-        <CTASection />
+        <CTASection /> */}
         
         <footer className="py-8 text-center text-gray-500 text-sm bg-gray-50">
           <p>© 2025 COPARK rights reserved.</p>

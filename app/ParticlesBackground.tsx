@@ -5,7 +5,7 @@ import * as THREE from 'three';
 function FloatingOrbs() {
   const groupRef = useRef<THREE.Group>(null);
   const orbCount = 25;
-  
+ 
   // Create orbs with random properties
   const orbs = useMemo(() => {
     return Array.from({ length: orbCount }, (_, i) => ({
@@ -15,48 +15,46 @@ function FloatingOrbs() {
         (Math.random() - 0.5) * 15
       ] as [number, number, number],
       scale: Math.random() * 0.5 + 0.3,
-      speed: Math.random() * 0.5 + 0.3,
-      rotationSpeed: Math.random() * 0.02,
-      color: i % 3 === 0 
-        ? new THREE.Color(0.6, 0.4, 1.0)  // Purple
-        : i % 3 === 1 
-        ? new THREE.Color(0.4, 0.6, 1.0)  // Blue
-        : new THREE.Color(1.0, 0.5, 0.8), // Pink
+      speed: Math.random() * 0.1 + 0.01, // Reduced from 0.5 + 0.3
+      rotationSpeed: Math.random() * 0.001, // Reduced from 0.02
+       color: i % 2 === 0
+        ? new THREE.Color(0.1, 0.1, 0.1)  // Black (dark gray for visibility)
+        : new THREE.Color(1.0, 0.4, 0.4), // Light red
       phase: Math.random() * Math.PI * 2
     }));
   }, [orbCount]);
-
+  
   useFrame((state) => {
     if (!groupRef.current) return;
-    
+   
     const time = state.clock.elapsedTime;
-    
+   
     groupRef.current.children.forEach((orb, i) => {
       const orbData = orbs[i];
-      
+     
       // Floating animation with sine waves
       orb.position.y = orbData.position[1] + Math.sin(time * orbData.speed + orbData.phase) * 2;
       orb.position.x = orbData.position[0] + Math.cos(time * orbData.speed * 0.7 + orbData.phase) * 1.5;
-      
+     
       // Gentle rotation
       orb.rotation.x = time * orbData.rotationSpeed;
       orb.rotation.y = time * orbData.rotationSpeed * 0.7;
-      
-      // Pulsing scale
-      const pulse = Math.sin(time * 2 + orbData.phase) * 0.1 + 1;
+     
+      // Pulsing scale (slower pulse)
+      const pulse = Math.sin(time * 1 + orbData.phase) * 0.1 + 1; // Reduced from time * 2
       orb.scale.setScalar(orbData.scale * pulse);
     });
-    
+   
     // Rotate entire group slowly
-    groupRef.current.rotation.y = time * 0.05;
+    groupRef.current.rotation.y = time * 0.02; // Reduced from 0.05
   });
-
+  
   return (
     <group ref={groupRef}>
       {orbs.map((orb, i) => (
         <mesh key={i} position={orb.position}>
           <sphereGeometry args={[1, 32, 32]} />
-          <meshBasicMaterial 
+          <meshBasicMaterial
             color={orb.color}
             transparent
             opacity={0.4}
@@ -65,7 +63,7 @@ function FloatingOrbs() {
           {/* Glow effect */}
           <mesh scale={1.5}>
             <sphereGeometry args={[1, 32, 32]} />
-            <meshBasicMaterial 
+            <meshBasicMaterial
               color={orb.color}
               transparent
               opacity={0.15}
@@ -202,7 +200,7 @@ export default function ParticlesBackground() {
       >
         {/* <AnimatedGradient /> */}
         <FloatingOrbs />
-        <WaveGrid />
+        {/* <WaveGrid /> */}
         <ambientLight intensity={0.5} />
       </Canvas>
     </div>
