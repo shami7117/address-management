@@ -173,7 +173,7 @@ const HeroSection = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.2, type: "spring", bounce: 0.4 }}
           >
-            Enter Your Code
+Indtast din kode
           </motion.h1>
           
           <motion.p
@@ -182,7 +182,7 @@ const HeroSection = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.6 }}
           >
-            Please enter your 6-character registration code to continue
+            Indtast venligst din 6-tegns registreringskode for at fortsætte
           </motion.p>
         </motion.div>
 
