@@ -12,7 +12,9 @@ import {
   ListChecks, 
   History, 
   Contact, 
-  FileText 
+  FileText, 
+  KeyRound, 
+  BarChart3 
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -26,9 +28,15 @@ const menuSections = [
     title: "Admin",
     items: [
       { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
+
+      // 📌 Contacts Module
       { icon: Contact, label: "Master Contacts", href: "/admin/contacts" },
       { icon: FileText, label: "Contact Reasons", href: "/admin/reasons" },
       { icon: ListChecks, label: "Contact Pages", href: "/admin/contact-pages" },
+
+      // 📌 Code Redirect Module
+      { icon: KeyRound, label: "Code Redirects", href: "/admin/codes" },
+      { icon: BarChart3, label: "Code Analytics", href: "/admin/codes/analytics" },
     ],
   },
   {
