@@ -1,5 +1,5 @@
 // ============================================================================
-// middleware.ts - FIXED VERSION with proper error handling
+// middleware.ts - SIMPLIFIED VERSION for proper logout and route protection
 // ============================================================================
 import { type NextRequest, NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
@@ -59,87 +59,82 @@ export async function middleware(request: NextRequest) {
 
   // Get user from auth
   const { data: { user } } = await supabase.auth.getUser();
+  const path = request.nextUrl.pathname;
   
-  console.log("User in Middleware:", user?.id);
+  console.log('=== MIDDLEWARE DEBUG ===');
+  console.log('Path:', path);
+  console.log('User ID:', user?.id);
+  console.log('Auth cookies:', request.cookies.getAll().filter(c => c.name.includes('sb')));
+  console.log('==================');
 
-  let role: string | null = null;
+  // Define routes
+  const isAuthRoute = path === '/login' || path === '/signup' || path === '/forgot-password' || path === '/reset-password';
+  const isAdminRoute = path.startsWith('/admin');
+  const isUserRoute = path.startsWith('/user');
+  const isLogsRoute = path.startsWith('/logs');
+  const isProtectedRoute = isAdminRoute || isUserRoute || isLogsRoute;
 
-  // ✅ Fetch role from profiles table with proper error handling
+  // Allow unauthorized page
+  if (path === '/unauthorized') {
+    return response;
+  }
+
+  // ✅ If user is NOT logged in
+  if (!user) {
+    // Allow auth routes (login, signup, etc.)
+    if (isAuthRoute) {
+      return response;
+    }
+    
+    // Block all protected routes - redirect to login
+    if (isProtectedRoute) {
+      console.log(`Blocking ${path} - user not authenticated`);
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+    
+    // Allow public routes
+    return response;
+  }
+
+  // ✅ If user IS logged in
   if (user) {
+    // Fetch user role from profiles table
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single();
 
-    console.log("Profile Query Result:", { profile, error });
+    let role = 'user'; // default role
 
-    if (error) {
-      console.error("Error fetching profile:", error);
-      
-      // If profile doesn't exist, create one with default role
-      if (error.code === 'PGRST116') {
-        console.log("Profile not found, creating default profile...");
-        const { data: newProfile, error: insertError } = await supabase
-          .from('profiles')
-          .insert({ id: user.id, role: 'user' })
-          .select('role')
-          .single();
-        
-        if (!insertError && newProfile) {
-          role = newProfile.role;
-          console.log("Created new profile with role:", role);
-        } else {
-          console.error("Error creating profile:", insertError);
-          // Default to 'user' role if creation fails
-          role = 'user';
-        }
-      }
-    } else if (profile) {
+    if (!error && profile) {
       role = profile.role;
-      console.log("User Role from profiles:", role);
-    } else {
-      // No error but no profile - shouldn't happen, default to user
-      console.warn("No profile found but no error returned");
-      role = 'user';
+    } else if (error?.code === 'PGRST116') {
+      // Profile doesn't exist - create one
+      const { data: newProfile } = await supabase
+        .from('profiles')
+        .insert({ id: user.id, role: 'user', full_name: '' })
+        .select('role')
+        .single();
+      
+      if (newProfile) {
+        role = newProfile.role;
+      }
     }
-  }
 
-  const path = request.nextUrl.pathname;
-
-  // Define routes
-  const isAuthRoute = path === '/login' || path === '/signup' || path === '/forgot-password';
-  const isAdminRoute = path.startsWith('/admin');
-  const isUserRoute = path.startsWith('/user');
-  const isLogsRoute = path.startsWith('/logs');
-
-  // Allow access to unauthorized page
-  if (path === '/unauthorized') {
-    return response;
-  }
-
-  // Redirect logged-in users away from auth pages
-  if (user && isAuthRoute) {
-    const redirectUrl = role === 'admin' ? new URL('/admin', request.url) : new URL('/user', request.url);
-    return NextResponse.redirect(redirectUrl);
-  }
-
-  // Protect admin routes
-  if (isAdminRoute) {
-    if (!user) {
-      return NextResponse.redirect(new URL('/login', request.url));
+    // Redirect logged-in users away from auth pages
+    if (isAuthRoute) {
+      const redirectUrl = role === 'admin' ? new URL('/admin', request.url) : new URL('/user', request.url);
+      return NextResponse.redirect(redirectUrl);
     }
-    if (role !== 'admin') {
+
+    // Check admin route access
+    if (isAdminRoute && role !== 'admin') {
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
-  }
 
-  // Protect user and logs routes
-  if (isUserRoute || isLogsRoute) {
-    if (!user) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-    if (role !== 'user' && role !== 'admin') {
+    // Allow user and logs routes for both admin and user roles
+    if ((isUserRoute || isLogsRoute) && role !== 'user' && role !== 'admin') {
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
   }
