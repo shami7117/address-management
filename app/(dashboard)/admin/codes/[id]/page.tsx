@@ -241,9 +241,9 @@ export default function CodeDetailPage() {
 
   return (
     <div className="flex h-screen bg-slate-50 ">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {/* <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} /> */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)}/>
+        {/* <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)}/> */}
         <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
           {/* Two Column Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

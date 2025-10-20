@@ -115,9 +115,9 @@ export default function ListDetailPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+      {/* <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} /> */}
       <div className="flex">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        {/* <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} /> */}
         <main className="flex-1 p-4 md:p-6 lg:p-8">
           <div className="mx-auto max-w-7xl">
             {/* Back Button & List Info */}

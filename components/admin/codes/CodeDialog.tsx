@@ -21,7 +21,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Code } from '@/app/admin/codes/page';
+import { Code } from '@/app/(dashboard)/admin/codes/page';
 
 interface CodeDialogProps {
   open: boolean;

@@ -587,9 +587,9 @@ export default function ContactPageEditor({ params }: { params: { id: string } }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)}/>
+      {/* <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)}/> */}
       <div className="flex-1 flex flex-col">
-        <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)}/>
+        {/* <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)}/> */}
         <ContactPageHeader
           page={page}
           onPreview={() => setPreviewOpen(true)}

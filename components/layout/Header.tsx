@@ -48,7 +48,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
         const cookieName = cookie.split('=')[0].trim();
         if (cookieName.includes('sb-') || cookieName.includes('auth')) {
           document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax;`;
-          console.log('Cleared cookie:', cookieName);
         }
       });
       
@@ -77,7 +76,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           <Menu className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-lg font-semibold md:text-xl">Admin Portal</h1>
+          {/* <h1 className="text-lg font-semibold md:text-xl">Admin Portal</h1> */}
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="relative">

@@ -499,9 +499,9 @@ const router=useRouter();
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {/* <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} /> */}
       <div className="flex-1 flex flex-col">
-        <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)}/>
+        {/* <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)}/> */}
         <main className="flex-1 p-4 md:p-8">
           <div className="max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-6">

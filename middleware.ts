@@ -61,11 +61,11 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
   
-  console.log('=== MIDDLEWARE DEBUG ===');
-  console.log('Path:', path);
-  console.log('User ID:', user?.id);
-  console.log('Auth cookies:', request.cookies.getAll().filter(c => c.name.includes('sb')));
-  console.log('==================');
+  // console.log('=== MIDDLEWARE DEBUG ===');
+  // console.log('Path:', path);
+  // console.log('User ID:', user?.id);
+  // console.log('Auth cookies:', request.cookies.getAll().filter(c => c.name.includes('sb')));
+  // console.log('==================');
 
   // Define routes
   const isAuthRoute = path === '/login' || path === '/signup' || path === '/forgot-password' || path === '/reset-password';

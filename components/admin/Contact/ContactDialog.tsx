@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Contact } from "@/app/admin/contacts/page";
 import {
   Dialog,
   DialogContent,
@@ -17,11 +16,22 @@ import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Upload, X } from "lucide-react";
 
+// Local Contact type for dialog props — keep in sync with app/(dashboard)/admin/contacts/page.tsx
+interface LocalContact {
+  id: string;
+  name: string;
+  title: string;
+  email: string;
+  phone: string;
+  photo?: string;
+  active: boolean;
+}
+
 interface ContactDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  contact: Contact | null;
-  onSave: (contact: Omit<Contact, "id"> & { id?: string }) => void;
+  contact: LocalContact | null;
+  onSave: (contact: Omit<LocalContact, "id"> & { id?: string }) => void;
 }
 
 export function ContactDialog({

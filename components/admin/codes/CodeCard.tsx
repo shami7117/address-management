@@ -3,7 +3,7 @@
 import { Edit, Trash2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Code } from '@/app/admin/codes/page';
+import { Code } from '@/app/(dashboard)/admin/codes/page';
 
 interface CodeCardProps {
   code: Code;

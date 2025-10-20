@@ -6,7 +6,7 @@ function FloatingOrbs() {
   const groupRef = useRef<THREE.Group>(null);
   const orbCount = 25;
  
-  // Create orbs with random properties
+  // Create orbs with random properties using COPARK colors
   const orbs = useMemo(() => {
     return Array.from({ length: orbCount }, (_, i) => ({
       position: [
@@ -15,11 +15,14 @@ function FloatingOrbs() {
         (Math.random() - 0.5) * 15
       ] as [number, number, number],
       scale: Math.random() * 0.5 + 0.3,
-      speed: Math.random() * 0.1 + 0.01, // Reduced from 0.5 + 0.3
-      rotationSpeed: Math.random() * 0.001, // Reduced from 0.02
-       color: i % 2 === 0
-        ? new THREE.Color(0.1, 0.1, 0.1)  // Black (dark gray for visibility)
-        : new THREE.Color(1.0, 0.4, 0.4), // Light red
+      speed: Math.random() * 0.1 + 0.01,
+      rotationSpeed: Math.random() * 0.001,
+      // COPARK Theme Colors
+      color: i % 3 === 0
+        ? new THREE.Color(0.00, 0.34, 0.31)  // Dark green #003732
+        : i % 3 === 1
+        ? new THREE.Color(0.07, 0.70, 0.49) // Green #11b27c
+        : new THREE.Color(0.94, 0.95, 0.97), // Grey #f0f2f7
       phase: Math.random() * Math.PI * 2
     }));
   }, [orbCount]);
@@ -40,13 +43,13 @@ function FloatingOrbs() {
       orb.rotation.x = time * orbData.rotationSpeed;
       orb.rotation.y = time * orbData.rotationSpeed * 0.7;
      
-      // Pulsing scale (slower pulse)
-      const pulse = Math.sin(time * 1 + orbData.phase) * 0.1 + 1; // Reduced from time * 2
+      // Pulsing scale
+      const pulse = Math.sin(time * 1 + orbData.phase) * 0.1 + 1;
       orb.scale.setScalar(orbData.scale * pulse);
     });
    
     // Rotate entire group slowly
-    groupRef.current.rotation.y = time * 0.02; // Reduced from 0.05
+    groupRef.current.rotation.y = time * 0.02;
   });
   
   return (
@@ -122,7 +125,7 @@ function WaveGrid() {
       position={[0, -8, -5]}
     >
       <meshBasicMaterial 
-        color={new THREE.Color(0.5, 0.5, 1.0)}
+        color={new THREE.Color(0.07, 0.70, 0.49)}
         wireframe
         transparent
         opacity={0.15}
@@ -138,9 +141,9 @@ function AnimatedGradient() {
     return new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
-        color1: { value: new THREE.Color(0.6, 0.4, 1.0) }, // Purple
-        color2: { value: new THREE.Color(0.4, 0.6, 1.0) }, // Blue
-        color3: { value: new THREE.Color(1.0, 0.5, 0.8) }  // Pink
+        color1: { value: new THREE.Color(0.00, 0.34, 0.31) }, // Dark green #003732
+        color2: { value: new THREE.Color(0.07, 0.70, 0.49) }, // Green #11b27c
+        color3: { value: new THREE.Color(0.94, 0.95, 0.97) }  // Grey #f0f2f7
       },
       vertexShader: `
         varying vec2 vUv;
@@ -159,7 +162,7 @@ function AnimatedGradient() {
         void main() {
           vec2 uv = vUv;
           
-          // Animated gradient
+          // Animated gradient with COPARK colors
           float mixer1 = sin(time * 0.5 + uv.x * 3.0) * 0.5 + 0.5;
           float mixer2 = cos(time * 0.3 + uv.y * 3.0) * 0.5 + 0.5;
           
@@ -201,7 +204,7 @@ export default function ParticlesBackground() {
         {/* <AnimatedGradient /> */}
         <FloatingOrbs />
         {/* <WaveGrid /> */}
-        <ambientLight intensity={0.5} />
+        {/* <ambientLight intensity={0.5} /> */}
       </Canvas>
     </div>
   );
