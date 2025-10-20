@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Code } from '@/app/admin/codes/page';
+import { Code } from '@/app/(dashboard)/admin/codes/page';
 
 interface CodesTableProps {
   codes: Code[];
