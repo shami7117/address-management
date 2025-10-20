@@ -1,4 +1,4 @@
-import { Contact } from "@/app/admin/contacts/page";
+import { Contact } from "@/app/(dashboard)/admin/contacts/page";
 import {
   Table,
   TableBody,

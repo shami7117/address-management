@@ -1,4 +1,4 @@
-import { Contact } from "@/app/admin/contacts/page";
+import { Contact } from "@/app/(dashboard)/admin/contacts/page";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
