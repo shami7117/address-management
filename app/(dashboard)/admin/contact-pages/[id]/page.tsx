@@ -516,7 +516,7 @@ const PageMembersList = ({
   onUpdate: (memberId: string, role: string) => void;
   onUpdateReasons: (memberId: string, reasonIds: string[]) => void;
   onRemove: (memberId: string) => void;
-  onReorder: (fromIndex: number, toIndex: number) => void;
+  onReorder: (fromIndex: number, toIndex: number, memberId: any) => void;
   isUpdating: string | null;
   isRemoving: string | null;
 }) => {
@@ -540,7 +540,7 @@ const PageMembersList = ({
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => {
                 if (draggedIndex !== null && draggedIndex !== index) {
-                  onReorder(draggedIndex, index);
+                  onReorder(draggedIndex, index, member.id);
                 }
                 setDraggedIndex(null);
               }}
@@ -774,19 +774,20 @@ function ContactPageEditorContent({ params }: { params: { id: string } }) {
     }
   };
 
-  const handleReorder = async (fromIndex: number, toIndex: number) => {
-    const membersList = members.data || [];
-    const newMembers = [...membersList];
-    const [movedMember] = newMembers.splice(fromIndex, 1);
-    newMembers.splice(toIndex, 0, movedMember);
+// 🧩 Handle reorder event
+const handleReorder = async (fromIndex: number, toIndex: number, memberId: string) => {
+  const membersList = members.data || [];
+  const newMembers = [...membersList];
+  const [movedMember] = newMembers.splice(fromIndex, 1);
+  newMembers.splice(toIndex, 0, movedMember);
 
-    const order = newMembers.map((m, i) => ({
-      member_id: m.id,
-      order_index: i,
-    }));
+  const order = newMembers.map((m, i) => ({
+    member_id: m.id,
+    order_index: i,
+  }));
 
-    await reorderMembers.mutateAsync(order);
-  };
+  await reorderMembers.mutateAsync({ memberId, order });
+};
 
   if (members.isLoading) {
     return (

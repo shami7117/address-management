@@ -137,31 +137,50 @@ export function useContactPageMembers(pageId: string) {
     },
   });
 
-  const reorderMembers = useMutation({
-    mutationFn: (order: { member_id: string; order_index: number }[]) =>
-      contactPagesAPI.reorderMembers(order),
-    onMutate: async (order) => {
-      await queryClient.cancelQueries({ queryKey: ['contact-page-members', pageId] });
-      const previous = queryClient.getQueryData(['contact-page-members', pageId]);
-      
-      queryClient.setQueryData(['contact-page-members', pageId], (old: any) => {
-        const orderMap = new Map(order.map(o => [o.member_id, o.order_index]));
-        return old?.map((m: any) => ({
+const reorderMembers = useMutation({
+  mutationFn: async ({
+    memberId,
+    order,
+  }: {
+    memberId: string;
+    order: { member_id: string; order_index: number }[];
+  }) => {
+    const res = await fetch(`/api/admin/contact-pages/members/${memberId}/reorder`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order }),
+    });
+    if (!res.ok) throw new Error('Failed to reorder members');
+    return res.json();
+  },
+
+  onMutate: async (variables) => {
+    const { order } = variables;
+    await queryClient.cancelQueries({ queryKey: ['contact-page-members', pageId] });
+    const previous = queryClient.getQueryData(['contact-page-members', pageId]);
+
+    queryClient.setQueryData(['contact-page-members', pageId], (old: any) => {
+      const orderMap = new Map(order.map(o => [o.member_id, o.order_index]));
+      return old
+        ?.map((m: any) => ({
           ...m,
-          order_index: orderMap.get(m.id) ?? m.order_index
-        })).sort((a: any, b: any) => a.order_index - b.order_index);
-      });
-      
-      return { previous };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contact-page-members', pageId] });
-    },
-    onError: (error, _, context) => {
-      queryClient.setQueryData(['contact-page-members', pageId], context?.previous);
-      toast.error('Failed to reorder members');
-    },
-  });
+          order_index: orderMap.get(m.id) ?? m.order_index,
+        }))
+        .sort((a: any, b: any) => a.order_index - b.order_index);
+    });
+
+    return { previous };
+  },
+
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['contact-page-members', pageId] });
+  },
+
+  onError: (error, _, context) => {
+    queryClient.setQueryData(['contact-page-members', pageId], context?.previous);
+    toast.error('Failed to reorder members');
+  },
+});
 
   const updateMemberReasons = useMutation({
     mutationFn: ({ memberId, reason_ids }: { memberId: string; reason_ids: string[] }) =>

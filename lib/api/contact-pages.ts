@@ -169,15 +169,17 @@ class ContactPagesAPI {
     return res.json();
   }
 
-  async reorderMembers(order: { member_id: string; order_index: number }[]) {
-    const res = await fetch(`/api/admin/contact-pages/members/reorder`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ order }),
-    });
-    if (!res.ok) throw new Error('Failed to reorder members');
-    return res.json();
-  }
+  async reorderMembers(memberId: any, order: { member_id: string; order_index: number }[]) {
+  const res = await fetch(`/api/admin/contact-pages/members/${memberId}/reorder`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ order }),
+  });
+
+  if (!res.ok) throw new Error('Failed to reorder members');
+  return res.json();
+}
+
 
   async updateMemberReasons(memberId: string, reason_ids: string[]) {
     console.log('🔍 Sending reason_ids:', reason_ids);
