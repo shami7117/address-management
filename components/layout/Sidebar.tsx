@@ -67,7 +67,7 @@ const menuSections: { title: string; requiredRole: string; items: MenuItem[] }[]
         children: [
           { icon: KeyRound, label: "Code Redirects", href: "/admin/codes" },
           { icon: BarChart3, label: "Code Analytics", href: "/admin/codes/analytics" },
-          { icon: LayoutDashboard, label: "Public Landing Page", href: "/public" },
+          { icon: LayoutDashboard, label: "Public Landing Page", href: "/" },
         ],
       },
       {
