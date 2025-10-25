@@ -1,21 +1,27 @@
 // ============================================
 // components/layout/Sidebar.tsx
 // ============================================
+
 "use client"
+
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
-import { 
-  LayoutDashboard, 
-  Users, 
-  ListChecks, 
-  History, 
-  Contact, 
-  FileText, 
-  KeyRound, 
-  BarChart3, 
-  UserCog
+import { usePathname } from "next/navigation"
+import {
+  LayoutDashboard,
+  Users,
+  History,
+  Contact,
+  FileText,
+  KeyRound,
+  BarChart3,
+  ListChecks,
+  UserCog,
+  MapPin,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react"
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient } from "@supabase/ssr"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 
@@ -24,39 +30,70 @@ interface SidebarProps {
   onClose: () => void
 }
 
-const menuSections = [
+interface MenuItem {
+  icon: any
+  label: string
+  href?: string
+  children?: MenuItem[]
+}
+
+const menuSections: { title: string; requiredRole: string; items: MenuItem[] }[] = [
   {
     title: "Admin",
     requiredRole: "admin",
     items: [
       { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
-      { icon: UserCog, label: "User Management", href: "/admin/users" },
-      { icon: Contact, label: "Master Contacts", href: "/admin/contacts" },
-      { icon: FileText, label: "Contact Reasons", href: "/admin/reasons" },
-      { icon: ListChecks, label: "Contact Pages", href: "/admin/contact-pages" },
-      { icon: KeyRound, label: "Code Redirects", href: "/admin/codes" },
-      { icon: BarChart3, label: "Code Analytics", href: "/admin/codes/analytics" },
+
+      {
+        icon: MapPin,
+        label: "Address Module",
+        children: [
+          { icon: ListChecks, label: "Address Lists", href: "/admin/address" },
+          { icon: BarChart3, label: "Wallboard View", href: "/admin/address/wallboard" },
+        ],
+      },
+      {
+        icon: Contact,
+        label: "Contact Module",
+        children: [
+          { icon: Contact, label: "Master Contacts", href: "/admin/contacts" },
+          { icon: FileText, label: "Contact Reasons", href: "/admin/reasons" },
+          { icon: ListChecks, label: "Contact Pages", href: "/admin/contact-pages" },
+        ],
+      },
+      {
+        icon: KeyRound,
+        label: "Code Redirect Module",
+        children: [
+          { icon: KeyRound, label: "Code Redirects", href: "/admin/codes" },
+          { icon: BarChart3, label: "Code Analytics", href: "/admin/codes/analytics" },
+          { icon: LayoutDashboard, label: "Public Landing Page", href: "/public" },
+        ],
+      },
+      {
+        icon: UserCog,
+        label: "User Management",
+        href: "/admin/users",
+      },
     ],
   },
   {
     title: "User",
     requiredRole: "user",
-    items: [
-      { icon: Users, label: "User Dashboard", href: "/user" },
-    ],
+    items: [{ icon: Users, label: "User Dashboard", href: "/user" }],
   },
   {
     title: "System",
     requiredRole: "admin",
-    items: [
-      { icon: History, label: "Activity Logs", href: "/logs" },
-    ],
+    items: [{ icon: History, label: "Activity Logs", href: "/logs" }],
   },
 ]
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const [role, setRole] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const pathname = usePathname()
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -67,73 +104,52 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         )
 
         const { data: { user } } = await supabase.auth.getUser()
-
         if (user) {
           const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
             .single()
-
-          setRole(profile?.role || 'user')
+          setRole(profile?.role || "user")
         }
       } catch (error) {
-        console.error('Error fetching user role:', error)
-        setRole('user')
+        console.error("Error fetching user role:", error)
+        setRole("user")
       } finally {
         setLoading(false)
       }
     }
-
     fetchUserRole()
   }, [])
 
+  const toggleDropdown = (label: string) => {
+    setOpenDropdown((prev) => (prev === label ? null : label))
+  }
+
   if (loading) {
     return (
-      <aside className="fixed left-0 top-0 z-50 h-full w-64 border-r bg-white shadow-sm md:sticky md:top-16 md:h-[calc(100vh-4rem)]">
-        <div className="flex h-16 items-center border-b px-6 md:hidden">
-          <h2 className="text-lg font-semibold">Menu</h2>
-        </div>
-        <nav className="flex flex-col gap-6 p-4">
-          {/* Skeleton loaders for menu sections */}
-          {[1, 2, 3].map((section) => (
-            <div key={section}>
-              {/* Section title skeleton */}
-              <div className="mb-2 h-3 w-16 rounded bg-gray-200" />
-              {/* Menu items skeleton */}
-              <ul className="space-y-2">
-                {[1, 2, 3].map((item) => (
-                  <li key={item} className="flex items-center gap-3 rounded-lg px-3 py-2">
-                    <div className="h-5 w-5 rounded bg-gray-200" />
-                    <div className="h-4 flex-1 rounded bg-gray-200" />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </nav>
-      </aside>
+      <aside className="fixed left-0 top-0 z-50 h-full w-64 border-r bg-white shadow-sm md:sticky md:top-0 md:h-screen" />
     )
   }
 
   return (
     <>
-      {/* Mobile overlay */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 md:hidden"
           onClick={onClose}
         />
       )}
+
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 h-full w-64 border-r bg-white shadow-sm transition-transform duration-300 md:sticky md:top-0 md:h-screen md:translate-x-0",
+          "fixed left-0 top-0 z-50 h-full w-64 border-r bg-white shadow-md transition-transform duration-300 md:sticky md:top-0 md:h-screen md:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        {/* Logo header */}
+        {/* Logo */}
         <div className="flex h-16 items-center border-b px-6">
-          <Image 
+          <Image
             src="/logo.png"
             alt="COPARK Logo"
             width={150}
@@ -141,12 +157,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             className="object-contain"
           />
         </div>
-        {/* Menu sections */}
-        <nav className="flex flex-col gap-6 p-4">
+
+        <nav className="flex flex-col gap-6 p-4 overflow-y-auto">
           {menuSections.map((section) => {
-            // Check if user has permission to see this section
-            const hasAccess = role === section.requiredRole || 
-                             (section.requiredRole === 'user' && role === 'admin')
+            const hasAccess =
+              role === section.requiredRole ||
+              (section.requiredRole === "user" && role === "admin")
 
             if (!hasAccess) return null
 
@@ -156,17 +172,70 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   {section.title}
                 </p>
                 <ul className="space-y-1">
-                  {section.items.map((item) => (
-                    <li key={item.label}>
-                      <Link
-                        href={item.href}
-                        className="flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 hover:text-gray-900"
-                      >
-                        <item.icon className="mr-3 h-5 w-5 text-gray-500" />
-                        {item.label}
-                      </Link>
-                    </li>
-                  ))}
+                  {section.items.map((item) => {
+                    const isDropdown = !!item.children
+                    const isActive = pathname.startsWith(item.href ?? "")
+
+                    return (
+                      <li key={item.label}>
+                        {isDropdown ? (
+                          <button
+                            onClick={() => toggleDropdown(item.label)}
+                            className={cn(
+                              "flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-gray-100",
+                              openDropdown === item.label
+                                ? "bg-gray-100 text-gray-900"
+                                : "text-gray-700"
+                            )}
+                          >
+                            <div className="flex items-center">
+                              <item.icon className="mr-3 h-5 w-5 text-gray-500" />
+                              {item.label}
+                            </div>
+                            {openDropdown === item.label ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                          </button>
+                        ) : (
+                          <Link
+                            href={item.href!}
+                            className={cn(
+                              "flex items-center rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-gray-100",
+                              pathname === item.href
+                                ? "bg-gray-100 text-gray-900"
+                                : "text-gray-700"
+                            )}
+                          >
+                            <item.icon className="mr-3 h-5 w-5 text-gray-500" />
+                            {item.label}
+                          </Link>
+                        )}
+
+                        {isDropdown && openDropdown === item.label && (
+                          <ul className="ml-8 mt-1 space-y-1 border-l border-gray-200 pl-2">
+                            {item.children?.map((sub) => (
+                              <li key={sub.label}>
+                                <Link
+                                  href={sub.href!}
+                                  className={cn(
+                                    "flex items-center rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-100 hover:text-gray-900",
+                                    pathname === sub.href
+                                      ? "bg-gray-100 text-gray-900"
+                                      : ""
+                                  )}
+                                >
+                                  <sub.icon className="mr-3 h-4 w-4 text-gray-400" />
+                                  {sub.label}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    )
+                  })}
                 </ul>
               </div>
             )
