@@ -1,12 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Save, Trash2, CheckCircle, XCircle, Plus, Search, GripVertical, X, Upload } from 'lucide-react';
+import { Eye, Save, Trash2, CheckCircle, XCircle, Plus, Search, GripVertical, X, Upload, Loader2,Copy } from 'lucide-react';
+import { useContactPageMembers } from '@/hooks/useContactPageMembers';
+import { useContactReasons, useUpdateContactPage, useTogglePublishContactPage, useDeleteContactPage } from '@/hooks/use-contact-pages';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { toast, Toaster } from 'sonner';
+import { useRouter } from 'next/navigation';
 
-import Header from '@/components/layout/Header';
-import Sidebar from '@/components/layout/Sidebar'
+
+const ROLE_LABELS = {
+  sales: 'Sales & Contract',
+  operations: 'Operations & Service',
+  daily: 'Day-to-Day Contact',
+};
 
 // Types
 interface ContactPage {
@@ -23,6 +32,7 @@ interface Contact {
   id: string;
   name: string;
   title: string;
+  
   photo_url?: string;
   status: 'active' | 'inactive';
 }
@@ -41,60 +51,118 @@ interface Reason {
   label: string;
 }
 
-const ROLE_LABELS = {
-  sales: 'Sales & Contract',
-  operations: 'Operations & Service',
-  daily: 'Day-to-Day Contact',
-};
-
 // ContactPageHeader Component
 const ContactPageHeader = ({ 
   page, 
   onPreview, 
   onTogglePublish, 
   onDelete,
-  onSave 
+  onSave,
+  isSaving,
+  isTogglingPublish,
+  isDeleting
 }: { 
   page: ContactPage;
   onPreview: () => void;
   onTogglePublish: () => void;
   onDelete: () => void;
   onSave: () => void;
+  isSaving?: boolean;
+  isTogglingPublish?: boolean;
+  isDeleting?: boolean;
 }) => {
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [urlCopied, setUrlCopied] = useState(false);
+
+  // Generate public URL
+  const publicUrl = `${window.location.origin}/public/${page.area_code}`;
+
+  // Copy URL to clipboard
+  const copyUrlToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      setUrlCopied(true);
+      setTimeout(() => setUrlCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy URL:', err);
+    }
+  };
 
   return (
     <>
       <div className="bg-white border-b p-4 md:p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
+          <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{page.customer_name}</h1>
               <Badge variant={page.published ? "default" : "secondary"}>
                 {page.published ? 'Published' : 'Unpublished'}
               </Badge>
             </div>
-            <p className="text-gray-600">Area Code: {page.area_code}</p>
+            <p className="text-gray-600 mb-2">Area Code: {page.area_code}</p>
+            
+            {/* Public URL - Only shown when published */}
+            {page.published && (
+              <div className="flex items-center gap-2 mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-green-900 mb-1">Public URL:</p>
+                  <a 
+                    href={publicUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-green-700 hover:text-green-900 hover:underline break-all"
+                  >
+                    {publicUrl}
+                  </a>
+                </div>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={copyUrlToClipboard}
+                  className="flex-shrink-0"
+                >
+                  {urlCopied ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 mr-1" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 mr-1" />
+                      Copy
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
+          
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={onPreview}>
               <Eye className="w-4 h-4 mr-2" />
               Preview
             </Button>
-            <Button variant="outline" onClick={onSave}>
-              <Save className="w-4 h-4 mr-2" />
+            <Button variant="outline" onClick={onSave} disabled={isSaving}>
+              {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
               Save Changes
             </Button>
             <Button 
               variant={page.published ? "secondary" : "default"}
               onClick={() => setPublishDialogOpen(true)}
+              disabled={isTogglingPublish}
             >
-              {page.published ? <XCircle className="w-4 h-4 mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+              {isTogglingPublish ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : page.published ? (
+                <XCircle className="w-4 h-4 mr-2" />
+              ) : (
+                <CheckCircle className="w-4 h-4 mr-2" />
+              )}
               {page.published ? 'Unpublish' : 'Publish'}
             </Button>
-            <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
-              <Trash2 className="w-4 h-4 mr-2" />
+            <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)} disabled={isDeleting}>
+              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
               Delete
             </Button>
           </div>
@@ -103,7 +171,7 @@ const ContactPageHeader = ({
 
       {/* Publish Confirmation Dialog */}
       <div className={`fixed inset-0 z-50 ${publishDialogOpen ? 'block' : 'hidden'}`}>
-        <div className="fixed inset-0 bg-black/50" onClick={() => setPublishDialogOpen(false)} />
+        <div className="fixed inset-0 bg-black/50" onClick={() => !isTogglingPublish && setPublishDialogOpen(false)} />
         <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md">
           <div className="bg-white rounded-lg shadow-lg p-6 m-4">
             <h2 className="text-xl font-semibold mb-2">
@@ -111,10 +179,18 @@ const ContactPageHeader = ({
             </h2>
             <p className="text-gray-600 mb-6">
               Are you sure you want to {page.published ? 'unpublish' : 'publish'} this page?
+              {!page.published && (
+                <span className="block mt-2 text-sm text-green-700 bg-green-50 p-2 rounded">
+                  ✓ This will make your contact page publicly accessible
+                </span>
+              )}
             </p>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setPublishDialogOpen(false)}>Cancel</Button>
-              <Button onClick={() => { onTogglePublish(); setPublishDialogOpen(false); }}>
+              <Button variant="outline" onClick={() => setPublishDialogOpen(false)} disabled={isTogglingPublish}>
+                Cancel
+              </Button>
+              <Button onClick={() => { onTogglePublish(); setPublishDialogOpen(false); }} disabled={isTogglingPublish}>
+                {isTogglingPublish ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 {page.published ? 'Unpublish' : 'Publish'}
               </Button>
             </div>
@@ -124,7 +200,7 @@ const ContactPageHeader = ({
 
       {/* Delete Confirmation Dialog */}
       <div className={`fixed inset-0 z-50 ${deleteDialogOpen ? 'block' : 'hidden'}`}>
-        <div className="fixed inset-0 bg-black/50" onClick={() => setDeleteDialogOpen(false)} />
+        <div className="fixed inset-0 bg-black/50" onClick={() => !isDeleting && setDeleteDialogOpen(false)} />
         <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md">
           <div className="bg-white rounded-lg shadow-lg p-6 m-4">
             <h2 className="text-xl font-semibold mb-2">Delete Contact Page</h2>
@@ -132,8 +208,11 @@ const ContactPageHeader = ({
               Are you sure you want to delete this contact page? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-              <Button variant="destructive" onClick={() => { onDelete(); setDeleteDialogOpen(false); }}>
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={() => { onDelete(); setDeleteDialogOpen(false); }} disabled={isDeleting}>
+                {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Delete
               </Button>
             </div>
@@ -221,20 +300,33 @@ const BrandingForm = ({
   );
 };
 
-// MasterContactList Component
 const MasterContactList = ({ 
-  contacts, 
-  onAdd 
+  pageId,
+  onAdd,
+  isAdding 
 }: { 
-  contacts: Contact[];
-  onAdd: (contact: Contact) => void;
+  pageId: string;
+  onAdd: (contactId: string) => void;
+  isAdding: boolean;
 }) => {
   const [search, setSearch] = useState('');
+  const { availableContacts } = useContactPageMembers(pageId);
 
-  const filteredContacts = contacts.filter(c => 
+  const filteredContacts = (availableContacts.data || []).filter(c => 
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     c.title.toLowerCase().includes(search.toLowerCase())
   );
+
+  if (availableContacts.isLoading) {
+    return (
+      <div className="bg-white border rounded-lg p-4">
+        <h3 className="text-lg font-semibold mb-3">Master Contacts</h3>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white border rounded-lg p-4">
@@ -265,8 +357,12 @@ const MasterContactList = ({
               <p className="font-medium text-sm truncate">{contact.name}</p>
               <p className="text-xs text-gray-600 truncate">{contact.title}</p>
             </div>
-            <Button size="sm" onClick={() => onAdd(contact)}>
-              <Plus className="w-4 h-4" />
+            <Button 
+              size="sm" 
+              onClick={() => onAdd(contact.id)}
+              disabled={isAdding}
+            >
+              {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             </Button>
           </div>
         ))}
@@ -279,37 +375,54 @@ const MasterContactList = ({
 const PageMemberCard = ({ 
   member, 
   reasons,
-  onUpdate,
-  onRemove 
+  onUpdateRole,
+  onUpdateReasons,
+  onRemove,
+  isUpdating,
+  isRemoving
 }: { 
-  member: PageMember;
-  reasons: Reason[];
-  onUpdate: (updates: Partial<PageMember>) => void;
+  member: any;
+  reasons: any[];
+  onUpdateRole: (role: string) => void;
+  onUpdateReasons: (reasonIds: string[]) => void;
   onRemove: () => void;
+  isUpdating: boolean;
+  isRemoving: boolean;
 }) => {
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
 
   return (
     <>
-      <div className="bg-white border rounded-lg p-4">
+      <div className="bg-white border rounded-lg p-4 relative">
+        {(isUpdating || isRemoving) && (
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg z-10">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+          </div>
+        )}
+        
         <div className="flex items-start gap-3 mb-3">
           <div className="cursor-move">
             <GripVertical className="w-5 h-5 text-gray-400" />
           </div>
           <div className="w-12 h-12 rounded-full bg-gray-300 flex-shrink-0 overflow-hidden">
-            {member.contact.photo_url ? (
-              <img src={member.contact.photo_url} alt={member.contact.name} className="w-full h-full object-cover" />
+            {member.photo_url ? (
+              <img src={member.photo_url} alt={member.name} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-white font-semibold">
-                {member.contact.name.charAt(0)}
+                {member.name.charAt(0)}
               </div>
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-semibold truncate">{member.contact.name}</h4>
-            <p className="text-sm text-gray-600 truncate">{member.contact.title}</p>
+            <h4 className="font-semibold truncate">{member.name}</h4>
+            <p className="text-sm text-gray-600 truncate">{member.title}</p>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => setRemoveDialogOpen(true)}>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setRemoveDialogOpen(true)}
+            disabled={isRemoving}
+          >
             <X className="w-4 h-4 text-red-600" />
           </Button>
         </div>
@@ -319,8 +432,9 @@ const PageMemberCard = ({
             <label className="block text-xs font-medium text-gray-700 mb-1">Role</label>
             <select
               value={member.role}
-              onChange={(e) => onUpdate({ role: e.target.value as any })}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => onUpdateRole(e.target.value)}
+              disabled={isUpdating}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
             >
               <option value="sales">{ROLE_LABELS.sales}</option>
               <option value="operations">{ROLE_LABELS.operations}</option>
@@ -331,22 +445,27 @@ const PageMemberCard = ({
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Contact Reasons</label>
             <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2">
-              {reasons.map(reason => (
-                <label key={reason.id} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={member.reason_ids.includes(reason.id)}
-                    onChange={(e) => {
-                      const newReasons = e.target.checked
-                        ? [...member.reason_ids, reason.id]
-                        : member.reason_ids.filter(id => id !== reason.id);
-                      onUpdate({ reason_ids: newReasons });
-                    }}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm">{reason.label}</span>
-                </label>
-              ))}
+              {reasons.map(reason => {
+                const isChecked = member.reasons.some((r: any) => r.id === reason.id);
+                return (
+                  <label key={reason.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        const currentIds = member.reasons.map((r: any) => r.id);
+                        const newIds = e.target.checked
+                          ? [...currentIds, reason.id]
+                          : currentIds.filter((id: string) => id !== reason.id);
+                        onUpdateReasons(newIds);
+                      }}
+                      disabled={isUpdating}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">{reason.label}</span>
+                  </label>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -354,16 +473,21 @@ const PageMemberCard = ({
 
       {/* Remove Confirmation Dialog */}
       <div className={`fixed inset-0 z-50 ${removeDialogOpen ? 'block' : 'hidden'}`}>
-        <div className="fixed inset-0 bg-black/50" onClick={() => setRemoveDialogOpen(false)} />
+        <div className="fixed inset-0 bg-black/50" onClick={() => !isRemoving && setRemoveDialogOpen(false)} />
         <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md">
           <div className="bg-white rounded-lg shadow-lg p-6 m-4">
             <h2 className="text-xl font-semibold mb-2">Remove Member</h2>
             <p className="text-gray-600 mb-4">
-              Are you sure you want to remove {member.contact.name} from this contact page?
+              Are you sure you want to remove {member.name} from this contact page?
             </p>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setRemoveDialogOpen(false)}>Cancel</Button>
-              <Button variant="destructive" onClick={() => { onRemove(); setRemoveDialogOpen(false); }}>
+              <Button variant="outline" onClick={() => setRemoveDialogOpen(false)} disabled={isRemoving}>Cancel</Button>
+              <Button 
+                variant="destructive" 
+                onClick={() => { onRemove(); setRemoveDialogOpen(false); }}
+                disabled={isRemoving}
+              >
+                {isRemoving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Remove
               </Button>
             </div>
@@ -376,17 +500,25 @@ const PageMemberCard = ({
 
 // PageMembersList Component
 const PageMembersList = ({ 
+  pageId,
   members, 
   reasons,
   onUpdate,
+  onUpdateReasons,
   onRemove,
-  onReorder 
+  onReorder,
+  isUpdating,
+  isRemoving
 }: { 
-  members: PageMember[];
-  reasons: Reason[];
-  onUpdate: (memberId: string, updates: Partial<PageMember>) => void;
+  pageId: string;
+  members: any[];
+  reasons: any[];
+  onUpdate: (memberId: string, role: string) => void;
+  onUpdateReasons: (memberId: string, reasonIds: string[]) => void;
   onRemove: (memberId: string) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
+  isUpdating: string | null;
+  isRemoving: string | null;
 }) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
@@ -416,8 +548,11 @@ const PageMembersList = ({
               <PageMemberCard
                 member={member}
                 reasons={reasons}
-                onUpdate={(updates) => onUpdate(member.id, updates)}
+                onUpdateRole={(role) => onUpdate(member.id, role)}
+                onUpdateReasons={(reasonIds) => onUpdateReasons(member.id, reasonIds)}
                 onRemove={() => onRemove(member.id)}
+                isUpdating={isUpdating === member.id}
+                isRemoving={isRemoving === member.id}
               />
             </div>
           ))}
@@ -438,11 +573,12 @@ const PreviewDialog = ({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   page: ContactPage;
-  members: PageMember[];
+  members: any[];
   reasons: Reason[];
 }) => {
-  const getReasonLabels = (reasonIds: string[]) => {
-    return reasonIds.map(id => reasons.find(r => r.id === id)?.label).filter(Boolean).join(', ');
+  const getReasonLabels = (memberReasons: Array<{id: string, label: string}>) => {
+    if (!memberReasons || memberReasons.length === 0) return '';
+    return memberReasons.map(r => r.label).join(', ');
   };
 
   return (
@@ -473,22 +609,22 @@ const PreviewDialog = ({
               {members.map(member => (
                 <div key={member.id} className="bg-white rounded-lg p-6 text-center shadow-sm">
                   <div className="w-24 h-24 rounded-full bg-gray-300 mx-auto mb-4 overflow-hidden">
-                    {member.contact.photo_url ? (
-                      <img src={member.contact.photo_url} alt={member.contact.name} className="w-full h-full object-cover" />
+                    {member.photo_url ? (
+                      <img src={member.photo_url} alt={member.name} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-white text-2xl font-semibold">
-                        {member.contact.name.charAt(0)}
+                      <div className="w-full h-full flex items-center justify-center text-white text-2xl font-semibold" style={{ backgroundColor: page.brand_color }}>
+                        {member.name?.charAt(0) || '?'}
                       </div>
                     )}
                   </div>
-                  <h3 className="font-semibold text-lg mb-1">{member.contact.name}</h3>
-                  <p className="text-sm text-gray-600 mb-2">{member.contact.title}</p>
-                  <Badge style={{ backgroundColor: page.brand_color }} className="mb-3">
-                    {ROLE_LABELS[member.role]}
+                  <h3 className="font-semibold text-lg mb-1">{member.name}</h3>
+                  <p className="text-sm text-gray-600 mb-2">{member.title}</p>
+                  <Badge style={{ backgroundColor: page.brand_color, color: 'white' }} className="mb-3">
+{ROLE_LABELS[member.role as keyof typeof ROLE_LABELS]}
                   </Badge>
-                  {member.reason_ids.length > 0 && (
+                  {member.reasons && member.reasons.length > 0 && (
                     <p className="text-xs text-gray-500 mt-2">
-                      Contact for: {getReasonLabels(member.reason_ids)}
+                      Contact for: {getReasonLabels(member.reasons)}
                     </p>
                   )}
                 </div>
@@ -500,124 +636,203 @@ const PreviewDialog = ({
     </div>
   );
 };
-
-// Main Page Component
-export default function ContactPageEditor({ params }: { params: { id: string } }) {
-  const [page, setPage] = useState<ContactPage>({
-    id: params.id,
-    customer_name: 'ABC Plumbing Services',
-    area_code: '1234',
+function ContactPageEditorContent({ params }: { params: { id: string } }) {
+  const router = useRouter();
+  const pageId = params.id; // ✅ No await needed in Client Component
+  
+  const {
+    contactPage,
+    members,
+    addMember,
+    updateMember,
+    removeMember,
+    reorderMembers,
+    updateMemberReasons
+  } = useContactPageMembers(pageId);
+  
+  const { data: contactReasons, isLoading: reasonsLoading } = useContactReasons();
+  const updateContactPage = useUpdateContactPage();
+  const togglePublish = useTogglePublishContactPage();
+  const deleteContactPage = useDeleteContactPage();
+  
+  const [reasons, setReasons] = useState<any[]>([]);
+  const [page, setPage] = useState({
+    id: pageId,
+    customer_name: '',
+    area_code: '',
     published: false,
     brand_color: '#3b82f6',
-    intro_text: 'Welcome to our contact page. We\'re here to help you with all your plumbing needs.',
+    intro_text: '',
   });
 
-  const [masterContacts] = useState<Contact[]>([
-    { id: '1', name: 'John Smith', title: 'Sales Manager', status: 'active', photo_url: '' },
-    { id: '2', name: 'Sarah Johnson', title: 'Service Coordinator', status: 'active', photo_url: '' },
-    { id: '3', name: 'Mike Brown', title: 'Operations Director', status: 'active', photo_url: '' },
-    { id: '4', name: 'Emily Davis', title: 'Customer Support', status: 'active', photo_url: '' },
-    { id: '5', name: 'David Wilson', title: 'Technical Lead', status: 'active', photo_url: '' },
-  ]);
-
-  const [reasons] = useState<Reason[]>([
-    { id: '1', label: 'General Inquiry' },
-    { id: '2', label: 'Technical Support' },
-    { id: '3', label: 'Billing' },
-    { id: '4', label: 'Emergency Service' },
-  ]);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const [members, setMembers] = useState<PageMember[]>([
-    {
-      id: 'm1',
-      contact_id: '1',
-      contact: masterContacts[0],
-      role: 'sales',
-      reason_ids: ['1', '3'],
-      order_index: 0,
-    },
-  ]);
-
-  const [previewOpen, setPreviewOpen] = useState(false);
-
-  const handleAddMember = (contact: Contact) => {
-    if (members.some(m => m.contact_id === contact.id)) {
-      alert('This contact is already added to the page.');
-      return;
+  // Wait for contactPage data and update state when it loads
+  useEffect(() => {
+    if (contactPage.data) {
+      setPage({
+        id: pageId,
+        customer_name: contactPage.data.customer_name || '',
+        area_code: contactPage.data.area_code || '',
+        published: contactPage.data.is_published || false,
+        brand_color: contactPage.data.brand_color || '#3b82f6',
+        intro_text: contactPage.data.intro_text || 'Welcome to our contact page. We\'re here to help you with all your plumbing needs.',
+      });
     }
+  }, [contactPage.data, pageId]);
 
-    const newMember: PageMember = {
-      id: `m${Date.now()}`,
-      contact_id: contact.id,
-      contact,
-      role: 'daily',
-      reason_ids: [],
-      order_index: members.length,
-    };
-    setMembers([...members, newMember]);
+  console.log("contactPage", contactPage.data);
+  
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [updatingMember, setUpdatingMember] = useState<string | null>(null);
+  const [removingMember, setRemovingMember] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  useEffect(() => {
+    if (!reasonsLoading && contactReasons) {
+      setReasons(contactReasons);
+    }
+  }, [contactReasons, reasonsLoading]);
+
+  const handlePageChange = (updates: Partial<ContactPage>) => {
+    setPage({ ...page, ...updates });
+    setHasUnsavedChanges(true);
   };
 
-  const handleUpdateMember = (memberId: string, updates: Partial<PageMember>) => {
-    setMembers(members.map(m => m.id === memberId ? { ...m, ...updates } : m));
+  console.log("members", members.data);
+  
+  const handleSave = async () => {
+    try {
+      await updateContactPage.mutateAsync({
+        id: pageId,
+        data: {
+          customer_name: page.customer_name,
+          area_code: page.area_code,
+          logo_url: (page as any).logo_url,
+          brand_color: page.brand_color,
+          intro_text: page.intro_text,
+        }
+      });
+      setHasUnsavedChanges(false);
+    } catch (error) {
+      // Error is handled by the hook
+    }
   };
 
-  const handleRemoveMember = (memberId: string) => {
-    setMembers(members.filter(m => m.id !== memberId));
+  const handleTogglePublish = async () => {
+    try {
+      const result = await togglePublish.mutateAsync(pageId);
+      setPage({ ...page, published: result.is_published });
+    } catch (error) {
+      // Error is handled by the hook
+    }
   };
 
-  const handleReorder = (fromIndex: number, toIndex: number) => {
-    const newMembers = [...members];
+  const handleDelete = async () => {
+    try {
+      await deleteContactPage.mutateAsync(pageId);
+      // Redirect after successful deletion
+      setTimeout(() => {
+        router.push('/admin/contact-pages');
+      }, 1500);
+    } catch (error) {
+      // Error is handled by the hook
+    }
+  };
+
+  const handleAddMember = async (contactId: string) => {
+    const nextOrderIndex = members.data?.length || 0;
+    await addMember.mutateAsync({
+      contact_id: contactId,
+      role: 'daily_contact',
+      order_index: nextOrderIndex,
+    });
+  };
+
+  const handleUpdateMemberRole = async (memberId: string, role: string) => {
+    setUpdatingMember(memberId);
+    try {
+      await updateMember.mutateAsync({ memberId, data: { role } });
+    } finally {
+      setUpdatingMember(null);
+    }
+  };
+
+  const handleUpdateMemberReasons = async (memberId: string, reasonIds: string[]) => {
+    setUpdatingMember(memberId);
+    try {
+      await updateMemberReasons.mutateAsync({ memberId, reason_ids: reasonIds });
+    } finally {
+      setUpdatingMember(null);
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string) => {
+    setRemovingMember(memberId);
+    try {
+      await removeMember.mutateAsync(memberId);
+    } finally {
+      setRemovingMember(null);
+    }
+  };
+
+  const handleReorder = async (fromIndex: number, toIndex: number) => {
+    const membersList = members.data || [];
+    const newMembers = [...membersList];
     const [movedMember] = newMembers.splice(fromIndex, 1);
     newMembers.splice(toIndex, 0, movedMember);
-    setMembers(newMembers.map((m, i) => ({ ...m, order_index: i })));
+
+    const order = newMembers.map((m, i) => ({
+      member_id: m.id,
+      order_index: i,
+    }));
+
+    await reorderMembers.mutateAsync(order);
   };
 
-  const handleSave = () => {
-    alert('Changes saved successfully!');
-  };
-
-  const handleTogglePublish = () => {
-    setPage({ ...page, published: !page.published });
-  };
-
-  const handleDelete = () => {
-    alert('Contact page deleted. Redirecting...');
-  };
+  if (members.isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)}/> */}
       <div className="flex-1 flex flex-col">
-        {/* <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)}/> */}
         <ContactPageHeader
           page={page}
           onPreview={() => setPreviewOpen(true)}
           onTogglePublish={handleTogglePublish}
           onDelete={handleDelete}
           onSave={handleSave}
+          isSaving={updateContactPage.isPending}
+          isTogglingPublish={togglePublish.isPending}
+          isDeleting={deleteContactPage.isPending}
         />
         
         <main className="flex-1 p-4 md:p-6">
           <div className="max-w-7xl mx-auto space-y-6">
-            {/* Branding Section */}
             <BrandingForm
               page={page}
-              onChange={(updates) => setPage({ ...page, ...updates })}
+              onChange={handlePageChange}
             />
 
-            {/* Members Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <MasterContactList
-                contacts={masterContacts.filter(c => c.status === 'active')}
+                pageId={pageId}
                 onAdd={handleAddMember}
+                isAdding={addMember.isPending}
               />
               <PageMembersList
-                members={members}
+                pageId={pageId}
+                members={members.data || []}
                 reasons={reasons}
-                onUpdate={handleUpdateMember}
+                onUpdate={handleUpdateMemberRole}
+                onUpdateReasons={handleUpdateMemberReasons}
                 onRemove={handleRemoveMember}
                 onReorder={handleReorder}
+                isUpdating={updatingMember}
+                isRemoving={removingMember}
               />
             </div>
           </div>
@@ -628,9 +843,25 @@ export default function ContactPageEditor({ params }: { params: { id: string } }
         open={previewOpen}
         onOpenChange={setPreviewOpen}
         page={page}
-        members={members}
+        members={members.data || []}
         reasons={reasons}
       />
+      
+      <Toaster position="top-right" />
     </div>
+  );
+}
+
+
+// Wrapper with QueryClientProvider
+// ✅ Option 1: Make the wrapper async and await params
+export default async function ContactPageEditor({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  
+  return (
+    <>
+      <ContactPageEditorContent params={resolvedParams} />
+      <Toaster position="top-right" />
+    </>
   );
 }

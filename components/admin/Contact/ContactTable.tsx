@@ -1,4 +1,9 @@
-import { Contact } from "@/app/(dashboard)/admin/contacts/page";
+// ====================================
+// components/admin/Contact/ContactTable.tsx - With Loading States
+// ====================================
+
+import { Contact } from "@/lib/api/contacts";
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -10,13 +15,21 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Loader2 } from "lucide-react";
 
 interface ContactTableProps {
-  contacts: Contact[];
-  onEdit: (contact: Contact) => void;
+  contacts: Array<{
+    id: string;
+    name: string;
+    title: string;
+    email: string;
+    phone: string;
+    photo?: string;
+    active: boolean;
+  }>;
+  onEdit: (contact: any) => void;
   onDelete: (id: string) => void;
-  onToggleActive: (id: string, active: boolean) => void;
+  onToggleActive: (id: string) => Promise<void>;
 }
 
 export function ContactTable({
@@ -25,6 +38,8 @@ export function ContactTable({
   onDelete,
   onToggleActive,
 }: ContactTableProps) {
+  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
+
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -32,6 +47,15 @@ export function ContactTable({
       .join("")
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const handleToggle = async (id: string) => {
+    setLoadingStates((prev) => ({ ...prev, [id]: true }));
+    try {
+      await onToggleActive(id);
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, [id]: false }));
+    }
   };
 
   return (
@@ -83,12 +107,17 @@ export function ContactTable({
                   </a>
                 </TableCell>
                 <TableCell>
-                  <Switch
-                    checked={contact.active}
-                    onCheckedChange={(checked) =>
-                      onToggleActive(contact.id, checked)
-                    }
-                  />
+                  <div className="flex items-center  gap-2">
+                    <Switch
+                    className="cursor-pointer"
+                      checked={contact.active}
+                      onCheckedChange={() => handleToggle(contact.id)}
+                      disabled={loadingStates[contact.id]}
+                    />
+                    {loadingStates[contact.id] && (
+                      <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">

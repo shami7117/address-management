@@ -1,14 +1,25 @@
-import { Contact } from "@/app/(dashboard)/admin/contacts/page";
+// ====================================
+// components/admin/Contact/ContactCard.tsx - Updated
+// ====================================
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Mail, Phone } from "lucide-react";
 
 interface ContactCardProps {
-  contact: Contact;
-  onEdit: (contact: Contact) => void;
+  contact: {
+    id: string;
+    name: string;
+    title: string;
+    email: string;
+    phone: string;
+    photo?: string;
+    active: boolean;
+  };
+  onEdit: (contact: any) => void;
   onDelete: (id: string) => void;
-  onToggleActive: (id: string, active: boolean) => void;
+  onToggleActive: (id: string) => void;
 }
 
 export function ContactCard({
@@ -46,9 +57,7 @@ export function ContactCard({
             <div className="flex items-center gap-2 ml-2">
               <Switch
                 checked={contact.active}
-                onCheckedChange={(checked) =>
-                  onToggleActive(contact.id, checked)
-                }
+                onCheckedChange={() => onToggleActive(contact.id)}
               />
             </div>
           </div>

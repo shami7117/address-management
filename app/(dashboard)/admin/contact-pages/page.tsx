@@ -1,23 +1,19 @@
+// app/admin/contact-pages/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Eye, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
-
-import Header from '@/components/layout/Header';
-import Sidebar from '@/components/layout/Sidebar'
+import { Plus, Eye, Edit, Trash2, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-
-// Types
-interface ContactPage {
-  id: string;
-  customer_name: string;
-  area_code: string;
-  published: boolean;
-  last_updated: string;
-  created_at: string;
-}
+import {
+  useContactPages,
+  useCreateContactPage,
+  useUpdateContactPage,
+  useTogglePublishContactPage,
+  useDeleteContactPage,
+} from '@/hooks/use-contact-pages';
+import { ContactPage } from '@/lib/api/contact-pages';
 
 // Utility function to format date
 const formatDate = (dateString: string): string => {
@@ -34,23 +30,27 @@ const ContactPageCard = ({
   onView,
   onEdit, 
   onTogglePublish,
-  onDelete 
+  onDelete,
+  isPublishing,
+  isDeleting,
 }: { 
   page: ContactPage;
   onView: (page: ContactPage) => void;
   onEdit: (page: ContactPage) => void;
   onTogglePublish: (page: ContactPage) => void;
   onDelete: (page: ContactPage) => void;
+  isPublishing: boolean;
+  isDeleting: boolean;
 }) => (
   <div className="bg-white border rounded-lg p-4 space-y-3">
     <div className="flex justify-between items-start">
       <div>
         <h3 className="font-semibold text-lg">{page.customer_name}</h3>
         <p className="text-sm text-gray-600">Area Code: {page.area_code}</p>
-        <p className="text-xs text-gray-500 mt-1">Updated: {formatDate(page.last_updated)}</p>
+        <p className="text-xs text-gray-500 mt-1">Updated: {formatDate(page.updated_at)}</p>
       </div>
-      <Badge variant={page.published ? "default" : "secondary"}>
-        {page.published ? 'Published' : 'Draft'}
+      <Badge variant={page.is_published ? "default" : "secondary"}>
+        {page.is_published ? 'Published' : 'Draft'}
       </Badge>
     </div>
     <div className="grid grid-cols-2 gap-2">
@@ -63,15 +63,31 @@ const ContactPageCard = ({
         Edit
       </Button>
       <Button 
-        variant={page.published ? "secondary" : "default"} 
+        variant={page.is_published ? "secondary" : "default"} 
         size="sm" 
         onClick={() => onTogglePublish(page)}
+        disabled={isPublishing || isDeleting}
       >
-        {page.published ? <XCircle className="w-4 h-4 mr-1" /> : <CheckCircle className="w-4 h-4 mr-1" />}
-        {page.published ? 'Unpublish' : 'Publish'}
+        {isPublishing ? (
+          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+        ) : page.is_published ? (
+          <XCircle className="w-4 h-4 mr-1" />
+        ) : (
+          <CheckCircle className="w-4 h-4 mr-1" />
+        )}
+        {page.is_published ? 'Unpublish' : 'Publish'}
       </Button>
-      <Button variant="destructive" size="sm" onClick={() => onDelete(page)}>
-        <Trash2 className="w-4 h-4 mr-1" />
+      <Button 
+        variant="destructive" 
+        size="sm" 
+        onClick={() => onDelete(page)}
+        disabled={isPublishing || isDeleting}
+      >
+        {isDeleting ? (
+          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+        ) : (
+          <Trash2 className="w-4 h-4 mr-1" />
+        )}
         Delete
       </Button>
     </div>
@@ -84,13 +100,17 @@ const ContactPagesTable = ({
   onView,
   onEdit,
   onTogglePublish,
-  onDelete 
+  onDelete,
+  publishingId,
+  deletingId,
 }: { 
   pages: ContactPage[];
   onView: (page: ContactPage) => void;
   onEdit: (page: ContactPage) => void;
   onTogglePublish: (page: ContactPage) => void;
   onDelete: (page: ContactPage) => void;
+  publishingId: string | null;
+  deletingId: string | null;
 }) => (
   <div className="bg-white border rounded-lg overflow-hidden">
     <table className="w-full">
@@ -114,44 +134,71 @@ const ContactPagesTable = ({
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-200">
-        {pages.map((page) => (
-          <tr key={page.id} className="hover:bg-gray-50">
-            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-              {page.customer_name}
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-              {page.area_code}
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap">
-              <Badge variant={page.published ? "default" : "secondary"}>
-                {page.published ? 'Yes' : 'No'}
-              </Badge>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-              {formatDate(page.last_updated)}
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" size="sm" onClick={() => onView(page)}>
-                  <Eye className="w-4 h-4" />
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => onEdit(page)}>
-                  <Edit className="w-4 h-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => onTogglePublish(page)}
-                >
-                  {page.published ? <XCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => onDelete(page)}>
-                  <Trash2 className="w-4 h-4 text-red-600" />
-                </Button>
-              </div>
-            </td>
-          </tr>
-        ))}
+        {pages.map((page) => {
+          const isPublishing = publishingId === page.id;
+          const isDeleting = deletingId === page.id;
+          const isDisabled = isPublishing || isDeleting;
+
+          return (
+            <tr key={page.id} className="hover:bg-gray-50">
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                {page.customer_name}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                {page.area_code}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <Badge variant={page.is_published ? "default" : "secondary"}>
+                  {page.is_published ? 'Yes' : 'No'}
+                </Badge>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                {formatDate(page.updated_at)}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => onView(page)}>
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => onEdit(page)}
+                    disabled={isDisabled}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => onTogglePublish(page)}
+                    disabled={isDisabled}
+                  >
+                    {isPublishing ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : page.is_published ? (
+                      <XCircle className="w-4 h-4" />
+                    ) : (
+                      <CheckCircle className="w-4 h-4" />
+                    )}
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => onDelete(page)}
+                    disabled={isDisabled}
+                  >
+                    {isDeleting ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-red-600" />
+                    ) : (
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    )}
+                  </Button>
+                </div>
+              </td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   </div>
@@ -163,16 +210,18 @@ const ContactPageDialog = ({
   onOpenChange, 
   page,
   existingAreaCodes,
-  onSave 
+  onSave,
+  isSaving,
 }: { 
   open: boolean; 
   onOpenChange: (open: boolean) => void; 
   page?: ContactPage;
   existingAreaCodes: string[];
   onSave: (data: { customer_name: string; area_code: string }) => void;
+  isSaving: boolean;
 }) => {
-  const [customerName, setCustomerName] = useState(page?.customer_name || '');
-  const [areaCode, setAreaCode] = useState(page?.area_code || '');
+  const [customerName, setCustomerName] = useState('');
+  const [areaCode, setAreaCode] = useState('');
   const [errors, setErrors] = useState<{ customerName?: string; areaCode?: string }>({});
 
   const validate = () => {
@@ -197,7 +246,6 @@ const ContactPageDialog = ({
   const handleSave = () => {
     if (!validate()) return;
     onSave({ customer_name: customerName.trim(), area_code: areaCode.trim() });
-    handleClose();
   };
 
   const handleClose = () => {
@@ -215,16 +263,19 @@ const ContactPageDialog = ({
     }
   };
 
-  // Reset form when dialog opens with new data
-  if (open && page && customerName !== page.customer_name) {
-    setCustomerName(page.customer_name);
-    setAreaCode(page.area_code);
-    setErrors({});
-  } else if (open && !page && customerName) {
-    setCustomerName('');
-    setAreaCode('');
-    setErrors({});
-  }
+  // Initialize / reset form when dialog opens or page changes
+  useEffect(() => {
+    if (open) {
+      setCustomerName(page?.customer_name || '');
+      setAreaCode(page?.area_code || '');
+      setErrors({});
+    } else {
+      // clear when dialog closes
+      setCustomerName('');
+      setAreaCode('');
+      setErrors({});
+    }
+  }, [open, page]);
 
   return (
     <div className={`fixed inset-0 z-50 ${open ? 'block' : 'hidden'}`}>
@@ -252,6 +303,7 @@ const ContactPageDialog = ({
                   errors.customerName ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Enter customer name"
+                disabled={isSaving}
               />
               {errors.customerName && (
                 <p className="text-red-500 text-sm mt-1">{errors.customerName}</p>
@@ -270,21 +322,29 @@ const ContactPageDialog = ({
                 }`}
                 placeholder="Enter 4-5 digit area code"
                 maxLength={5}
+                disabled={isSaving || !!page}
               />
               {errors.areaCode && (
                 <p className="text-red-500 text-sm mt-1">{errors.areaCode}</p>
               )}
               <p className="text-gray-500 text-xs mt-1">
-                Must be 4-5 digits and unique
+                Must be 4-5 digits and unique {page && '(cannot be changed)'}
               </p>
             </div>
           </div>
           <div className="flex justify-end gap-2 mt-6">
-            <Button variant="outline" onClick={handleClose}>
+            <Button variant="outline" onClick={handleClose} disabled={isSaving}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>
-              {page ? 'Update' : 'Create'}
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {page ? 'Updating...' : 'Creating...'}
+                </>
+              ) : (
+                page ? 'Update' : 'Create'
+              )}
             </Button>
           </div>
         </div>
@@ -298,23 +358,24 @@ const PublishConfirmDialog = ({
   open, 
   onOpenChange, 
   page, 
-  onConfirm 
+  onConfirm,
+  isConfirming,
 }: { 
   open: boolean; 
   onOpenChange: (open: boolean) => void; 
   page?: ContactPage; 
   onConfirm: () => void;
+  isConfirming: boolean;
 }) => {
   const handleConfirm = () => {
     onConfirm();
-    onOpenChange(false);
   };
 
-  const action = page?.published ? 'unpublish' : 'publish';
+  const action = page?.is_published ? 'unpublish' : 'publish';
 
   return (
     <div className={`fixed inset-0 z-50 ${open ? 'block' : 'hidden'}`}>
-      <div className="fixed inset-0 bg-black/50" onClick={() => onOpenChange(false)} />
+      <div className="fixed inset-0 bg-black/50" onClick={() => !isConfirming && onOpenChange(false)} />
       <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md">
         <div className="bg-white rounded-lg shadow-lg p-6 m-4">
           <h2 className="text-xl font-semibold mb-2 capitalize">{action} Contact Page</h2>
@@ -328,11 +389,22 @@ const PublishConfirmDialog = ({
             </div>
           )}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              disabled={isConfirming}
+            >
               Cancel
             </Button>
-            <Button onClick={handleConfirm}>
-              {action === 'publish' ? 'Publish' : 'Unpublish'}
+            <Button onClick={handleConfirm} disabled={isConfirming}>
+              {isConfirming ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {action === 'publish' ? 'Publishing...' : 'Unpublishing...'}
+                </>
+              ) : (
+                action === 'publish' ? 'Publish' : 'Unpublish'
+              )}
             </Button>
           </div>
         </div>
@@ -346,21 +418,22 @@ const DeleteContactPageDialog = ({
   open, 
   onOpenChange, 
   page, 
-  onConfirm 
+  onConfirm,
+  isConfirming,
 }: { 
   open: boolean; 
   onOpenChange: (open: boolean) => void; 
   page?: ContactPage; 
   onConfirm: () => void;
+  isConfirming: boolean;
 }) => {
   const handleConfirm = () => {
     onConfirm();
-    onOpenChange(false);
   };
 
   return (
     <div className={`fixed inset-0 z-50 ${open ? 'block' : 'hidden'}`}>
-      <div className="fixed inset-0 bg-black/50" onClick={() => onOpenChange(false)} />
+      <div className="fixed inset-0 bg-black/50" onClick={() => !isConfirming && onOpenChange(false)} />
       <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md">
         <div className="bg-white rounded-lg shadow-lg p-6 m-4">
           <h2 className="text-xl font-semibold mb-2">Delete Contact Page</h2>
@@ -374,11 +447,26 @@ const DeleteContactPageDialog = ({
             </div>
           )}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              disabled={isConfirming}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleConfirm}>
-              Delete
+            <Button 
+              variant="destructive" 
+              onClick={handleConfirm}
+              disabled={isConfirming}
+            >
+              {isConfirming ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </Button>
           </div>
         </div>
@@ -389,48 +477,19 @@ const DeleteContactPageDialog = ({
 
 // Main Page Component
 export default function ContactPagesPage() {
-  const [pages, setPages] = useState<ContactPage[]>([
-    {
-      id: '1',
-      customer_name: 'ABC Plumbing Services',
-      area_code: '1234',
-      published: true,
-      last_updated: '2025-10-10T10:30:00Z',
-      created_at: '2025-09-01T08:00:00Z',
-    },
-    {
-      id: '2',
-      customer_name: 'XYZ Electrical',
-      area_code: '5678',
-      published: false,
-      last_updated: '2025-10-12T14:20:00Z',
-      created_at: '2025-09-15T09:30:00Z',
-    },
-    {
-      id: '3',
-      customer_name: 'Pro Roofing Company',
-      area_code: '9012',
-      published: true,
-      last_updated: '2025-10-08T16:45:00Z',
-      created_at: '2025-08-20T11:00:00Z',
-    },
-    {
-      id: '4',
-      customer_name: 'Elite HVAC Solutions',
-      area_code: '34567',
-      published: true,
-      last_updated: '2025-10-14T09:15:00Z',
-      created_at: '2025-10-01T07:30:00Z',
-    },
-  ]);
+  const router = useRouter();
+  const { data: pages = [], isLoading, error } = useContactPages();
+  const createMutation = useCreateContactPage();
+  const updateMutation = useUpdateContactPage();
+  const togglePublishMutation = useTogglePublishContactPage();
+  const deleteMutation = useDeleteContactPage();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editingPage, setEditingPage] = useState<ContactPage | undefined>();
   const [targetPage, setTargetPage] = useState<ContactPage | undefined>();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-const router=useRouter();
+
   const existingAreaCodes = pages
     .filter(p => p.id !== editingPage?.id)
     .map(p => p.area_code);
@@ -461,58 +520,78 @@ const router=useRouter();
 
   const handleSave = (data: { customer_name: string; area_code: string }) => {
     if (editingPage) {
-      setPages(pages.map(p => 
-        p.id === editingPage.id 
-          ? { ...p, ...data, last_updated: new Date().toISOString() }
-          : p
-      ));
+      updateMutation.mutate(
+        { id: editingPage.id, data: { customer_name: data.customer_name } },
+        {
+          onSuccess: () => {
+            setDialogOpen(false);
+            setEditingPage(undefined);
+          },
+        }
+      );
     } else {
-      const newPage: ContactPage = {
-        id: Date.now().toString(),
-        customer_name: data.customer_name,
-        area_code: data.area_code,
-        published: false,
-        last_updated: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-      };
-      setPages([...pages, newPage]);
+      createMutation.mutate(data, {
+        onSuccess: () => {
+          setDialogOpen(false);
+        },
+      });
     }
   };
 
   const handleConfirmPublish = () => {
     if (targetPage) {
-      setPages(pages.map(p => 
-        p.id === targetPage.id 
-          ? { ...p, published: !p.published, last_updated: new Date().toISOString() }
-          : p
-      ));
-      setTargetPage(undefined);
+      togglePublishMutation.mutate(targetPage.id, {
+        onSuccess: () => {
+          setPublishDialogOpen(false);
+          setTargetPage(undefined);
+        },
+      });
     }
   };
 
   const handleConfirmDelete = () => {
     if (targetPage) {
-      setPages(pages.filter(p => p.id !== targetPage.id));
-      setTargetPage(undefined);
+      deleteMutation.mutate(targetPage.id, {
+        onSuccess: () => {
+          setDeleteDialogOpen(false);
+          setTargetPage(undefined);
+        },
+      });
     }
   };
 
+  if (error) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">Failed to load contact pages</p>
+            <Button onClick={() => window.location.reload()}>Retry</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} /> */}
       <div className="flex-1 flex flex-col">
-        {/* <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)}/> */}
         <main className="flex-1 p-4 md:p-8">
           <div className="max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-3xl font-bold text-gray-900">Contact Pages</h1>
-              <Button onClick={handleNewPage}>
+              <Button onClick={handleNewPage} disabled={isLoading}>
                 <Plus className="w-4 h-4 mr-2" />
                 New Contact Page
               </Button>
             </div>
 
-            {pages.length === 0 ? (
+            {isLoading ? (
+              <div className="bg-white border rounded-lg p-12 text-center">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-gray-400" />
+                <p className="text-gray-500">Loading contact pages...</p>
+              </div>
+            ) : pages.length === 0 ? (
               <div className="bg-white border rounded-lg p-12 text-center">
                 <p className="text-gray-500 mb-4">No contact pages yet</p>
                 <Button onClick={handleNewPage}>
@@ -529,7 +608,9 @@ const router=useRouter();
                     onView={handleView}
                     onEdit={handleEdit}
                     onTogglePublish={handleTogglePublish}
-                    onDelete={handleDelete} 
+                    onDelete={handleDelete}
+                    publishingId={togglePublishMutation.isPending ? targetPage?.id || null : null}
+                    deletingId={deleteMutation.isPending ? targetPage?.id || null : null}
                   />
                 </div>
 
@@ -542,7 +623,9 @@ const router=useRouter();
                       onView={handleView}
                       onEdit={handleEdit}
                       onTogglePublish={handleTogglePublish}
-                      onDelete={handleDelete} 
+                      onDelete={handleDelete}
+                      isPublishing={togglePublishMutation.isPending && targetPage?.id === page.id}
+                      isDeleting={deleteMutation.isPending && targetPage?.id === page.id}
                     />
                   ))}
                 </div>
@@ -557,21 +640,24 @@ const router=useRouter();
         onOpenChange={setDialogOpen} 
         page={editingPage}
         existingAreaCodes={existingAreaCodes}
-        onSave={handleSave} 
+        onSave={handleSave}
+        isSaving={createMutation.isPending || updateMutation.isPending}
       />
 
       <PublishConfirmDialog 
         open={publishDialogOpen} 
         onOpenChange={setPublishDialogOpen} 
         page={targetPage} 
-        onConfirm={handleConfirmPublish} 
+        onConfirm={handleConfirmPublish}
+        isConfirming={togglePublishMutation.isPending}
       />
 
       <DeleteContactPageDialog 
         open={deleteDialogOpen} 
         onOpenChange={setDeleteDialogOpen} 
         page={targetPage} 
-        onConfirm={handleConfirmDelete} 
+        onConfirm={handleConfirmDelete}
+        isConfirming={deleteMutation.isPending}
       />
     </div>
   );
